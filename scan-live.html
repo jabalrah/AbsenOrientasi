@@ -102,7 +102,7 @@
     <h2>📷 Live Scanner Absensi</h2>
     <p style="color:#999;font-size:13px;">Halaman ini terpisah dari Apps Script — hanya bicara ke Web App lewat API.</p>
     <input type="text" id="webAppUrl" placeholder="URL Web App (…/exec)" autocomplete="off">
-    <input type="password" id="password" placeholder="Password admin" autocomplete="off"
+    <input type="password" id="password" placeholder="Password admin" autocomplete="new-password"
            onkeydown="if(event.key==='Enter') doLogin()">
     <button class="btn" onclick="doLogin()">Masuk & Ambil Daftar Sesi</button>
     <div id="loginError"></div>
@@ -161,7 +161,7 @@
     // ============================================================
     function doLogin() {
       var url = document.getElementById('webAppUrl').value.trim();
-      var pw = document.getElementById('password').value;
+      var pw = document.getElementById('password').value.trim();
       var errBox = document.getElementById('loginError');
       errBox.textContent = '';
 
