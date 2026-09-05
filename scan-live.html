@@ -83,9 +83,8 @@
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   #toast.ok { background: #e6f4ea; }
   #toast.fail { background: #fce8e6; }
-  #toastIcon { font-size: 40px; }
-  #toastNama { font-weight: 700; font-size: 17px; margin-top: 6px; }
-  #toastMsg { font-size: 13px; color: #555; margin-top: 4px; }
+  #toastIcon { font-size: 48px; }
+  #toastStatus { font-weight: 800; font-size: 22px; margin-top: 6px; letter-spacing: 0.5px; }
 
   #logoutBtn {
     background: none; border: none; color: #aaa; font-size: 20px; padding: 6px 10px;
@@ -134,8 +133,7 @@
 
   <div id="toast">
     <div id="toastIcon"></div>
-    <div id="toastNama"></div>
-    <div id="toastMsg"></div>
+    <div id="toastStatus"></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
@@ -293,6 +291,7 @@
       lastScanTime[pesertaId] = now;
       busy = true;
       flashFrame(true);
+      showToast(true);
       beep(true);
 
       // Ambil foto dari frame video SAAT INI (bukan canvas hasil decode, sudah sama isinya)
@@ -306,16 +305,16 @@
         photoBase64: photoBase64,
         angkatan: angkatan
       }).then(function (res) {
-        showToast(res.success, res.nama, res.message);
         if (res.success) {
           scanCount++;
           document.getElementById('scanCounter').textContent = scanCount;
         } else {
-          beep(false);
+          // Sengaja tidak ditampilkan ke layar (sesuai permintaan: cukup BERHASIL saja).
+          // Tetap dicatat di console untuk keperluan debug kalau dibutuhkan panitia teknis.
+          console.warn('Scan tidak tersimpan:', res.message);
         }
       }).catch(function (err) {
-        showToast(false, null, 'Gagal kirim ke server: ' + err.message);
-        beep(false);
+        console.warn('Gagal kirim ke server:', err.message);
         // biar bisa dicoba lagi lebih cepat kalau errornya jaringan
         lastScanTime[pesertaId] = 0;
       }).finally(function () {
@@ -371,30 +370,43 @@
     // TOAST + BUNYI
     // ============================================================
     var toastTimer = null;
-    function showToast(success, nama, message) {
+    function showToast(success) {
       var box = document.getElementById('toast');
       clearTimeout(toastTimer);
       box.className = 'show ' + (success ? 'ok' : 'fail');
       document.getElementById('toastIcon').textContent = success ? '✅' : '❌';
-      document.getElementById('toastNama').textContent = nama || '';
-      document.getElementById('toastMsg').textContent = message || '';
-      toastTimer = setTimeout(function () { box.classList.remove('show'); }, 2200);
+      document.getElementById('toastStatus').textContent = success ? 'BERHASIL' : 'GAGAL';
+      toastTimer = setTimeout(function () { box.classList.remove('show'); }, 1800);
     }
 
     var audioCtx = null;
     function beep(success) {
       try {
         audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-        var o = audioCtx.createOscillator();
-        var g = audioCtx.createGain();
-        o.type = 'sine';
-        o.frequency.value = success ? 880 : 220;
-        g.gain.value = 0.15;
-        o.connect(g);
-        g.connect(audioCtx.destination);
-        o.start();
-        o.stop(audioCtx.currentTime + (success ? 0.12 : 0.25));
+        if (success) {
+          // dua nada cepat berturut-turut, nyaring & jelas terdengar di lokasi ramai
+          playTone(1046, 0.09, 0);      // C6
+          playTone(1568, 0.14, 0.1);    // G6
+        } else {
+          playTone(160, 0.35, 0);       // nada rendah panjang untuk gagal
+        }
+        if (navigator.vibrate) navigator.vibrate(success ? 60 : [80, 60, 80]);
       } catch (e) { /* audio tidak wajib, abaikan kalau gagal */ }
+    }
+
+    function playTone(freq, durationSec, delaySec) {
+      var startTime = audioCtx.currentTime + delaySec;
+      var o = audioCtx.createOscillator();
+      var g = audioCtx.createGain();
+      o.type = 'square';           // lebih nyaring & tegas dibanding sine
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, startTime);
+      g.gain.exponentialRampToValueAtTime(0.9, startTime + 0.01); // volume besar
+      g.gain.exponentialRampToValueAtTime(0.0001, startTime + durationSec);
+      o.connect(g);
+      g.connect(audioCtx.destination);
+      o.start(startTime);
+      o.stop(startTime + durationSec + 0.02);
     }
 
     window.addEventListener('beforeunload', stopCamera);
