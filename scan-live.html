@@ -84,7 +84,7 @@
   #toast.ok { background: #e6f4ea; }
   #toast.fail { background: #fce8e6; }
   #toastIcon { font-size: 48px; }
-  #toastStatus { font-weight: 800; font-size: 22px; margin-top: 6px; letter-spacing: 0.5px; }
+  #toastStatus { font-weight: 800; font-size: 19px; margin-top: 6px; letter-spacing: 0.3px; line-height: 1.3; }
 
   #logoutBtn {
     background: none; border: none; color: #aaa; font-size: 20px; padding: 6px 10px;
@@ -308,6 +308,14 @@
         if (res.success) {
           scanCount++;
           document.getElementById('scanCounter').textContent = scanCount;
+        } else if (res.code === 'SESI_BELUM_MULAI') {
+          // timpa notifikasi BERHASIL yang sudah tampil, jelaskan berapa menit lagi
+          var menit = res.minutesLeft;
+          var label = (menit && menit > 0)
+            ? 'DITOLAK: Bisa Scan ' + menit + ' Menit Lagi'
+            : 'DITOLAK: Sesi Belum Mulai';
+          showToast(false, label);
+          beep(false);
         } else {
           // Sengaja tidak ditampilkan ke layar (sesuai permintaan: cukup BERHASIL saja).
           // Tetap dicatat di console untuk keperluan debug kalau dibutuhkan panitia teknis.
@@ -370,13 +378,13 @@
     // TOAST + BUNYI
     // ============================================================
     var toastTimer = null;
-    function showToast(success) {
+    function showToast(success, label) {
       var box = document.getElementById('toast');
       clearTimeout(toastTimer);
       box.className = 'show ' + (success ? 'ok' : 'fail');
       document.getElementById('toastIcon').textContent = success ? '✅' : '❌';
-      document.getElementById('toastStatus').textContent = success ? 'BERHASIL' : 'GAGAL';
-      toastTimer = setTimeout(function () { box.classList.remove('show'); }, 1800);
+      document.getElementById('toastStatus').textContent = label || (success ? 'BERHASIL' : 'GAGAL');
+      toastTimer = setTimeout(function () { box.classList.remove('show'); }, success ? 1800 : 2800);
     }
 
     var audioCtx = null;
