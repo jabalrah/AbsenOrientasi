@@ -604,19 +604,46 @@
     }
 
     function capturePhoto() {
-      var maxW = 480;
-      var scale = Math.min(1, maxW / canvas.width);
-      var outW = Math.round(canvas.width * scale);
-      var outH = Math.round(canvas.height * scale);
-      var outCanvas = document.createElement('canvas');
-      outCanvas.width = outW;
-      outCanvas.height = outH;
-      outCanvas.getContext('2d').drawImage(canvas, 0, 0, outW, outH);
-      return outCanvas.toDataURL('image/jpeg', 0.6);
+      // Foto absensi dikompres otomatis maksimal 20 KB
+      return compressToTarget(canvas, 20 * 1024, 480);
     }
 
     function flashFrame(on) {
       document.getElementById('scanFrame').classList.toggle('detected', on);
+    }
+
+    // ============================================================
+    // KOMPRESI FOTO OTOMATIS — turunkan kualitas & dimensi bertahap
+    // sampai ukuran hasil di bawah targetBytes (best-effort, ada batas
+    // iterasi supaya tidak infinite loop).
+    // ============================================================
+    function compressToTarget(source, targetBytes, startMaxDim) {
+      var srcW = source.naturalWidth || source.width;
+      var srcH = source.naturalHeight || source.height;
+      var quality = 0.8;
+      var dim = startMaxDim;
+      var dataUrl;
+      var attempts = 0;
+      while (attempts < 14) {
+        var scale = Math.min(1, dim / srcW);
+        var w = Math.max(1, Math.round(srcW * scale));
+        var h = Math.max(1, Math.round(srcH * scale));
+        var c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        c.getContext('2d').drawImage(source, 0, 0, w, h);
+        dataUrl = c.toDataURL('image/jpeg', quality);
+        var sizeBytes = Math.round((dataUrl.length - dataUrl.indexOf(',') - 1) * 3 / 4);
+        if (sizeBytes <= targetBytes || (quality <= 0.3 && dim <= 200)) break;
+        if (quality > 0.3) {
+          quality -= 0.1;
+        } else {
+          dim = Math.round(dim * 0.85);
+          quality = 0.6;
+        }
+        attempts++;
+      }
+      return dataUrl;
     }
 
     // Indikator nama + status (Hadir/Terlambat) — tampil sebentar lalu hilang.
@@ -784,13 +811,8 @@
       reader.onload = function (ev) {
         var img = new Image();
         img.onload = function () {
-          var maxW = 1280;
-          var scale = Math.min(1, maxW / img.width);
-          var c = document.createElement('canvas');
-          c.width = img.width * scale;
-          c.height = img.height * scale;
-          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-          var dataUrl = c.toDataURL('image/jpeg', 0.78);
+          // Foto dokumentasi dikompres otomatis maksimal 40 KB
+          var dataUrl = compressToTarget(img, 40 * 1024, 1280);
           dokPendingPhoto[slot] = dataUrl;
           uploadDokFoto(slot, dataUrl);
         };
