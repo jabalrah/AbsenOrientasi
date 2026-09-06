@@ -138,16 +138,17 @@
   /* indikator nama + status, tampil sebentar tanpa suara/getar */
   #nameIndicator {
     position: absolute; top: 18px; left: 50%; transform: translateX(-50%) translateY(-14px);
-    background: rgba(255,255,255,0.97); padding: 10px 20px; border-radius: 999px;
-    font-weight: 700; font-size: 14px; color: var(--text);
+    background: rgba(255,255,255,0.97); padding: 10px 18px; border-radius: 16px;
+    font-weight: 700; font-size: 13px; line-height: 1.35; color: var(--text);
     box-shadow: 0 4px 16px rgba(0,0,0,0.25);
     opacity: 0; transition: opacity .25s ease, transform .25s ease;
-    pointer-events: none; z-index: 45; max-width: 86%;
-    text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    pointer-events: none; z-index: 45; max-width: 88%;
+    text-align: center; white-space: normal; word-break: break-word;
   }
   #nameIndicator.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   #nameIndicator .status-hadir { color: var(--success); }
   #nameIndicator .status-terlambat { color: var(--warning); }
+  #nameIndicator .status-gagal { color: var(--danger); }
 
   /* toast */
   #toast {
@@ -337,6 +338,8 @@
     var PASSWORD = '';
     var sesiListCache = [];
     var angkatanListCache = [];
+    var authLevel = 'admin';   // 'admin' | 'angkatan'
+    var authAngkatan = null;   // nilai Angkatan kalau authLevel === 'angkatan'
 
     var stream = null;
     var currentFacingMode = 'environment'; // 'environment' = kamera belakang, 'user' = kamera depan
@@ -378,11 +381,26 @@
           if (!res.success) throw new Error(res.message || 'Login gagal.');
           sesiListCache = res.sesiList || [];
           angkatanListCache = res.angkatanList || [];
+          authLevel = res.level || 'admin';
+          authAngkatan = res.angkatan || null;
 
           populateSelect('angkatanSelect', angkatanListCache);
           populateSelect('dokAngkatanSelect', angkatanListCache);
           resetSesiSelect();
           resetDokSesiSelect();
+
+          // Akun terbatas (akses = nama Angkatan): kunci dropdown Angkatan
+          // ke angkatan mereka sendiri, langsung filter Sesi-nya juga.
+          if (authLevel === 'angkatan' && authAngkatan) {
+            var angEl = document.getElementById('angkatanSelect');
+            var dokAngEl = document.getElementById('dokAngkatanSelect');
+            angEl.value = authAngkatan;
+            angEl.disabled = true;
+            dokAngEl.value = authAngkatan;
+            dokAngEl.disabled = true;
+            filterSesiByAngkatan(authAngkatan, 'sesiSelect');
+            filterSesiByAngkatan(authAngkatan, 'dokSesiSelect');
+          }
 
           localStorage.setItem('scanLiveUrl', WEB_APP_URL); // hanya URL disimpan, password tidak
           document.getElementById('menuUrlLabel').textContent = WEB_APP_URL;
@@ -397,6 +415,8 @@
     function doLogout() {
       stopCamera();
       PASSWORD = '';
+      authLevel = 'admin';
+      authAngkatan = null;
       document.getElementById('password').value = '';
       document.getElementById('loginError').textContent = '';
       showView('viewLogin');
@@ -569,7 +589,7 @@
         if (res.success) {
           scanCount++;
           document.getElementById('scanCounter').textContent = scanCount;
-          showNameIndicator(res.nama, res.status);
+          showNameIndicator((res.nama || '') + ' — ' + (res.status || 'Hadir'), res.status === 'Terlambat' ? 'terlambat' : 'hadir');
         } else if (res.code === 'SESI_BELUM_MULAI') {
           var menit = res.minutesLeft;
           var label = (menit && menit > 0)
@@ -577,14 +597,18 @@
             : 'DITOLAK: Sesi Belum Mulai';
           showToast(false, label);
           beep(false);
+          showNameIndicator(res.message, 'gagal');
         } else if (res.code === 'ANGKATAN_TIDAK_SESUAI') {
           showToast(false, res.message);
           beep(false);
+          showNameIndicator(res.message, 'gagal');
         } else {
           console.warn('Scan tidak tersimpan:', res.message);
+          showNameIndicator(res.message, 'gagal');
         }
       }).catch(function (err) {
         console.warn('Gagal kirim ke server:', err.message);
+        showNameIndicator('Gagal terhubung ke server', 'gagal');
         lastScanTime[pesertaId] = 0;
       }).finally(function () {
         busy = false;
@@ -649,13 +673,15 @@
     // Indikator nama + status (Hadir/Terlambat) — tampil sebentar lalu hilang.
     // Sengaja TIDAK memutar bunyi/getar, itu urusan showToast()+beep() yang terpisah.
     var nameIndicatorTimer = null;
-    function showNameIndicator(nama, status) {
+    function showNameIndicator(text, variant) {
+      // variant: 'hadir' | 'terlambat' | 'gagal'
       var el = document.getElementById('nameIndicator');
-      var statusClass = status === 'Terlambat' ? 'status-terlambat' : 'status-hadir';
-      el.innerHTML = (nama || '') + ' <span class="' + statusClass + '">— ' + (status || 'Hadir') + '</span>';
+      var statusClass = variant === 'terlambat' ? 'status-terlambat' : (variant === 'gagal' ? 'status-gagal' : 'status-hadir');
+      el.innerHTML = '<span class="' + statusClass + '">' + (text || '') + '</span>';
       clearTimeout(nameIndicatorTimer);
       el.classList.add('show');
-      nameIndicatorTimer = setTimeout(function () { el.classList.remove('show'); }, 1800);
+      // pesan gagal ditampilkan lebih lama supaya sempat terbaca alasannya
+      nameIndicatorTimer = setTimeout(function () { el.classList.remove('show'); }, variant === 'gagal' ? 3000 : 1800);
     }
 
     // ============================================================
