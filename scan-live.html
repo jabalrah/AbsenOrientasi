@@ -111,8 +111,8 @@
   <div id="scannerApp">
     <div id="topBar">
       <button id="logoutBtn" onclick="doLogout()" title="Keluar">←</button>
-      <select id="sesiSelect"><option value="">-- Pilih Sesi --</option></select>
       <select id="angkatanSelect"><option value="">-- Pilih Angkatan --</option></select>
+      <select id="sesiSelect" disabled><option value="">-- Pilih Angkatan Dulu --</option></select>
       <div class="counter">Hadir<br><b id="scanCounter">0</b></div>
     </div>
 
@@ -123,7 +123,7 @@
       <div id="pauseOverlay">
         <div>
           <div class="icon">⏸️</div>
-          <div>Pilih sesi &amp; angkatan dulu untuk mulai scan</div>
+          <div>Pilih Angkatan &amp; Sesi dulu untuk mulai scan</div>
         </div>
       </div>
     </div>
@@ -143,6 +143,7 @@
     // ============================================================
     var WEB_APP_URL = '';
     var PASSWORD = '';
+    var sesiListCache = [];
     var stream = null;
     var video = document.getElementById('video');
     var canvas = document.getElementById('canvas');
@@ -180,12 +181,11 @@
       callApi({ action: 'getLists', password: PASSWORD })
         .then(function (res) {
           if (!res.success) throw new Error(res.message || 'Login gagal.');
-          populateSelect('sesiSelect', res.sesiList, function (s) {
-            return { value: s.Sesi_ID, label: s.Sesi_ID + ' — ' + s.Nama_Sesi + (s.Status_Aktif ? '' : ' (nonaktif)') };
-          });
+          sesiListCache = res.sesiList || [];
           populateSelect('angkatanSelect', res.angkatanList, function (a) {
             return { value: a, label: 'Angkatan ' + a };
           });
+          resetSesiSelect();
           document.getElementById('loginBox').style.display = 'none';
           document.getElementById('scannerApp').style.display = 'flex';
           localStorage.setItem('scanLiveUrl', WEB_APP_URL); // hanya URL disimpan, password tidak
@@ -224,7 +224,46 @@
     });
 
     document.getElementById('sesiSelect').addEventListener('change', updatePauseState);
-    document.getElementById('angkatanSelect').addEventListener('change', updatePauseState);
+    document.getElementById('angkatanSelect').addEventListener('change', function () {
+      var angkatan = this.value;
+      if (!angkatan) {
+        resetSesiSelect();
+      } else {
+        filterSesiByAngkatan(angkatan);
+      }
+      updatePauseState();
+    });
+
+    function resetSesiSelect() {
+      var el = document.getElementById('sesiSelect');
+      el.innerHTML = '<option value="">-- Pilih Angkatan Dulu --</option>';
+      el.disabled = true;
+    }
+
+    function filterSesiByAngkatan(angkatan) {
+      var el = document.getElementById('sesiSelect');
+      el.disabled = false;
+      var filtered = sesiListCache.filter(function (s) {
+        var sesiAngkatan = String(s.Angkatan || '').trim();
+        // sesi dengan Angkatan kosong berarti "untuk semua angkatan", jadi tetap muncul
+        var cocokAngkatan = (sesiAngkatan === '' || sesiAngkatan === String(angkatan).trim());
+        return cocokAngkatan && s.Status_Aktif === true;
+      });
+
+      if (filtered.length === 0) {
+        el.innerHTML = '<option value="">-- Tidak ada sesi aktif untuk angkatan ini --</option>';
+        return;
+      }
+
+      el.innerHTML = '<option value="">-- Pilih Sesi --</option>';
+      filtered.forEach(function (s) {
+        var opt = document.createElement('option');
+        opt.value = s.Sesi_ID;
+        opt.textContent = s.Sesi_ID + ' — ' + s.Nama_Sesi + (s.Angkatan ? '' : ' (Semua Angkatan)');
+        el.appendChild(opt);
+      });
+    }
+
     function updatePauseState() {
       var ready = document.getElementById('sesiSelect').value && document.getElementById('angkatanSelect').value;
       document.getElementById('pauseOverlay').style.display = ready ? 'none' : 'flex';
