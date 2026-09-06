@@ -5,115 +5,243 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Live Scanner Absensi</title>
 <style>
-  :root { --primary: #1a73e8; }
-  * { box-sizing: border-box; }
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-light: #dbeafe;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --warning: #f59e0b;
+    --warning-light: #fef3c7;
+    --bg: #eef2f7;
+    --card: #ffffff;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-    margin: 0; background: #111; color: #eee;
-    -webkit-tap-highlight-color: transparent;
+    margin: 0; background: var(--bg); color: var(--text);
   }
+  .hidden { display: none !important; }
+  .view { display: none; }
+  .view.active { display: block; }
 
   /* ---------- LOGIN ---------- */
-  #loginBox {
-    max-width: 340px; margin: 80px auto; text-align: center;
-    background: #1c1c1c; padding: 24px; border-radius: 14px;
+  #viewLogin {
+    min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 20px;
   }
-  #loginBox h2 { margin-top: 0; }
-  #loginBox input, #loginBox select {
-    width: 100%; padding: 12px; border: 1px solid #333; border-radius: 8px;
-    font-size: 16px; margin: 10px 0; background: #262626; color: #eee;
+  .login-card {
+    max-width: 380px; width: 100%; text-align: center;
+    background: var(--card); padding: 28px 24px; border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(37,99,235,0.12);
   }
-  #loginError { color: #ff6b6b; font-size: 13px; min-height: 18px; }
+  .login-card h2 { margin: 8px 0 4px; font-size: 21px; }
+  .login-card p.sub { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
+  .login-icon { font-size: 44px; }
+  input[type=text], input[type=password], input[type=number], select {
+    width: 100%; padding: 14px; border: 2px solid var(--border); border-radius: 12px;
+    font-size: 16px; margin: 8px 0; background: #fff; color: var(--text);
+  }
+  input:focus, select:focus { outline: none; border-color: var(--primary); }
   .btn {
-    width: 100%; padding: 14px; border: none; border-radius: 8px;
+    width: 100%; padding: 15px; border: none; border-radius: 12px;
     font-size: 16px; font-weight: 700; cursor: pointer; color: #fff;
-    background: var(--primary);
+    background: var(--primary); margin-top: 6px; transition: transform .08s;
   }
-  .btn:disabled { background: #444; cursor: not-allowed; }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+  .btn-outline {
+    background: #fff; color: var(--primary); border: 2px solid var(--primary);
+  }
+  .btn-lg { padding: 22px; font-size: 18px; border-radius: 16px; }
+  .msg-error { color: var(--danger); font-size: 13px; min-height: 18px; margin-top: 4px; font-weight: 600; }
 
-  /* ---------- SCANNER ---------- */
-  #scannerApp { display: none; height: 100dvh; display: flex; flex-direction: column; }
-  #topBar {
-    padding: 10px 14px; background: #1c1c1c; display: flex; gap: 8px;
-    flex-wrap: wrap; align-items: center;
+  /* ---------- TOP BAR (shared) ---------- */
+  .topbar {
+    padding: 14px 16px; background: var(--card); display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 50;
   }
-  #topBar select {
-    flex: 1; min-width: 120px; padding: 10px; border-radius: 8px;
-    border: 1px solid #333; background: #262626; color: #eee; font-size: 14px;
+  .topbar h1 { font-size: 16px; margin: 0; flex: 1; color: var(--text); }
+  .icon-btn {
+    background: var(--primary-light); border: none; color: var(--primary-dark);
+    font-size: 18px; width: 42px; height: 42px; border-radius: 12px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
   }
-  #topBar .counter {
-    font-size: 13px; color: #aaa; white-space: nowrap; padding: 0 6px;
-  }
-  #topBar .counter b { color: #fff; font-size: 16px; }
 
-  #cameraWrap {
-    position: relative; flex: 1; overflow: hidden; background: #000;
+  /* ---------- MENU ---------- */
+  #viewMenu { min-height: 100dvh; }
+  .menu-wrap { padding: 24px 20px; max-width: 460px; margin: 0 auto; }
+  .menu-title { text-align: center; margin: 12px 0 28px; }
+  .menu-title h2 { margin: 6px 0 2px; font-size: 20px; }
+  .menu-title p { color: var(--text-muted); font-size: 13px; margin: 0; word-break: break-all; }
+  .menu-card {
+    background: var(--card); border-radius: 20px; padding: 26px 20px; margin-bottom: 16px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 16px;
+    cursor: pointer; border: 2px solid transparent; transition: border-color .15s;
   }
-  #video {
-    width: 100%; height: 100%; object-fit: cover; display: block;
+  .menu-card:active { border-color: var(--primary); }
+  .menu-card .emoji {
+    font-size: 32px; width: 60px; height: 60px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
+  .menu-card.absensi .emoji { background: var(--primary-light); }
+  .menu-card.dokumentasi .emoji { background: var(--warning-light); }
+  .menu-card h3 { margin: 0 0 4px; font-size: 17px; }
+  .menu-card p { margin: 0; color: var(--text-muted); font-size: 13px; }
+  .logout-link {
+    display: block; text-align: center; margin-top: 20px; color: var(--text-muted);
+    font-size: 13px; text-decoration: underline; cursor: pointer;
+  }
+
+  /* ---------- SCANNER (ABSENSI) ---------- */
+  #viewAbsensi { min-height: 100dvh; display: flex; flex-direction: column; }
+  .filter-row {
+    padding: 12px 16px; background: var(--card); display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  }
+  .filter-row select {
+    flex: 1; min-width: 130px; margin: 0; padding: 12px; font-size: 14px;
+  }
+  .counter-pill {
+    background: var(--success-light); color: var(--success); font-weight: 800;
+    padding: 8px 14px; border-radius: 999px; font-size: 13px; white-space: nowrap;
+  }
+  .counter-pill b { font-size: 16px; }
+
+  #cameraWrap { position: relative; flex: 1; overflow: hidden; background: #0a0a0a; }
+  #video { width: 100%; height: 100%; object-fit: cover; display: block; }
   #scanFrame {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     width: 68vw; max-width: 320px; aspect-ratio: 1/1;
-    border: 3px solid rgba(255,255,255,0.85); border-radius: 16px;
-    box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
-    pointer-events: none;
+    border: 4px solid rgba(255,255,255,0.9); border-radius: 20px;
+    box-shadow: 0 0 0 2000px rgba(0,0,0,0.4);
+    pointer-events: none; transition: border-color .15s;
   }
-  #scanFrame.detected { border-color: #4caf50; }
+  #scanFrame.detected { border-color: var(--success); }
   #hint {
-    position: absolute; bottom: 14%; left: 0; right: 0; text-align: center;
-    color: #fff; font-size: 13px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-    pointer-events: none;
+    position: absolute; bottom: 12%; left: 0; right: 0; text-align: center;
+    color: #fff; font-size: 13px; text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    pointer-events: none; font-weight: 600;
   }
   #pauseOverlay {
     position: absolute; inset: 0; display: none; align-items: center;
-    justify-content: center; background: rgba(0,0,0,0.55); text-align: center;
-    padding: 20px;
+    justify-content: center; background: rgba(15,23,42,0.75); text-align: center;
+    padding: 24px; color: #fff;
   }
-  #pauseOverlay .icon { font-size: 64px; }
+  #pauseOverlay .icon { font-size: 56px; margin-bottom: 8px; }
 
-  /* toast hasil scan */
+  /* toast */
   #toast {
-    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
-    background: #fff; color: #111; padding: 16px 24px; border-radius: 14px;
-    text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+    background: #fff; color: var(--text); padding: 18px 26px; border-radius: 18px;
+    text-align: center; box-shadow: 0 8px 28px rgba(0,0,0,0.25);
     opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
     z-index: 999; max-width: 320px; width: 88%;
   }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  #toast.ok { background: #e6f4ea; }
-  #toast.fail { background: #fce8e6; }
-  #toastIcon { font-size: 48px; }
+  #toast.ok { background: var(--success-light); }
+  #toast.fail { background: var(--danger-light); }
+  #toastIcon { font-size: 46px; }
   #toastStatus { font-weight: 800; font-size: 19px; margin-top: 6px; letter-spacing: 0.3px; line-height: 1.3; }
 
-  #logoutBtn {
-    background: none; border: none; color: #aaa; font-size: 20px; padding: 6px 10px;
-    cursor: pointer;
+  canvas.hidden { display: none; }
+
+  /* ---------- DOKUMENTASI ---------- */
+  #viewDokumentasi { min-height: 100dvh; }
+  .dok-wrap { padding: 16px; max-width: 460px; margin: 0 auto; }
+  .dok-filter-card {
+    background: var(--card); border-radius: 18px; padding: 18px; margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+  }
+  .dok-filter-card label { font-size: 13px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px; }
+  .dok-slot-card {
+    background: var(--card); border-radius: 18px; padding: 18px; margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+  }
+  .dok-slot-card h3 { margin: 0 0 12px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .dok-preview {
+    width: 100%; border-radius: 12px; display: none; margin-bottom: 12px; max-height: 220px; object-fit: cover;
+  }
+  .dok-status {
+    font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block;
+  }
+  .dok-status.ada { background: var(--success-light); color: var(--success); }
+  .dok-status.belum { background: #f1f5f9; color: var(--text-muted); }
+  .dok-btn-row { display: flex; gap: 8px; margin-top: 10px; }
+  .dok-btn-row .btn { margin-top: 0; }
+  .dok-empty-hint {
+    text-align: center; color: var(--text-muted); font-size: 13px; padding: 30px 16px;
   }
 
-  canvas.hidden { display: none; }
+  #dokToast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+    background: #fff; padding: 14px 20px; border-radius: 14px; font-weight: 700; font-size: 14px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2); opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s; z-index: 999; max-width: 320px; text-align: center;
+  }
+  #dokToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #dokToast.ok { background: var(--success-light); color: var(--success); }
+  #dokToast.fail { background: var(--danger-light); color: var(--danger); }
 </style>
 </head>
 <body>
 
-  <!-- ================= LOGIN / KONFIGURASI ================= -->
-  <div id="loginBox">
-    <h2>📷 Live Scanner Absensi</h2>
-    <p style="color:#999;font-size:13px;">Halaman ini terpisah dari Apps Script — hanya bicara ke Web App lewat API.</p>
-    <input type="text" id="webAppUrl" placeholder="URL Web App (…/exec)" autocomplete="off">
-    <input type="password" id="password" placeholder="Password admin" autocomplete="new-password"
-           onkeydown="if(event.key==='Enter') doLogin()">
-    <button class="btn" onclick="doLogin()">Masuk & Ambil Daftar Sesi</button>
-    <div id="loginError"></div>
+  <!-- ================= LOGIN ================= -->
+  <div id="viewLogin" class="view active">
+    <div class="login-card">
+      <div class="login-icon">📷</div>
+      <h2>Live Scanner Absensi</h2>
+      <p class="sub">Halaman terpisah dari Apps Script, bicara ke Web App lewat API.</p>
+      <input type="text" id="webAppUrl" placeholder="URL Web App (…/exec)" autocomplete="off">
+      <input type="password" id="password" placeholder="Password admin" autocomplete="new-password"
+             onkeydown="if(event.key==='Enter') doLogin()">
+      <button class="btn" onclick="doLogin()">Masuk</button>
+      <div id="loginError" class="msg-error"></div>
+    </div>
   </div>
 
-  <!-- ================= SCANNER ================= -->
-  <div id="scannerApp">
-    <div id="topBar">
-      <button id="logoutBtn" onclick="doLogout()" title="Keluar">←</button>
+  <!-- ================= MENU ================= -->
+  <div id="viewMenu" class="view">
+    <div class="menu-wrap">
+      <div class="menu-title">
+        <h2>Pilih Menu</h2>
+        <p id="menuUrlLabel"></p>
+      </div>
+
+      <div class="menu-card absensi" onclick="openAbsensi()">
+        <div class="emoji">📋</div>
+        <div>
+          <h3>Absensi</h3>
+          <p>Scan QR peserta secara live untuk mencatat kehadiran</p>
+        </div>
+      </div>
+
+      <div class="menu-card dokumentasi" onclick="openDokumentasi()">
+        <div class="emoji">📸</div>
+        <div>
+          <h3>Dokumentasi</h3>
+          <p>Ambil & simpan foto dokumentasi untuk suatu sesi</p>
+        </div>
+      </div>
+
+      <div class="logout-link" onclick="doLogout()">Keluar / Ganti Akun</div>
+    </div>
+  </div>
+
+  <!-- ================= ABSENSI (LIVE SCAN) ================= -->
+  <div id="viewAbsensi" class="view">
+    <div class="topbar">
+      <button class="icon-btn" onclick="backToMenuFromAbsensi()" title="Kembali">←</button>
+      <h1>Live Scan Absensi</h1>
+      <div class="counter-pill">Hadir <b id="scanCounter">0</b></div>
+    </div>
+
+    <div class="filter-row">
       <select id="angkatanSelect"><option value="">-- Pilih Angkatan --</option></select>
       <select id="sesiSelect" disabled><option value="">-- Pilih Angkatan Dulu --</option></select>
-      <div class="counter">Hadir<br><b id="scanCounter">0</b></div>
     </div>
 
     <div id="cameraWrap">
@@ -129,12 +257,58 @@
     </div>
   </div>
 
+  <!-- ================= DOKUMENTASI ================= -->
+  <div id="viewDokumentasi" class="view">
+    <div class="topbar">
+      <button class="icon-btn" onclick="backToMenuFromDokumentasi()" title="Kembali">←</button>
+      <h1>Dokumentasi Sesi</h1>
+    </div>
+
+    <div class="dok-wrap">
+      <div class="dok-filter-card">
+        <label>Pilih Angkatan</label>
+        <select id="dokAngkatanSelect" onchange="handleDokAngkatanChange()">
+          <option value="">-- Pilih Angkatan --</option>
+        </select>
+        <label style="margin-top:10px;">Pilih Sesi</label>
+        <select id="dokSesiSelect" disabled onchange="handleDokSesiChange()">
+          <option value="">-- Pilih Angkatan Dulu --</option>
+        </select>
+      </div>
+
+      <div id="dokSlotsWrap" class="hidden">
+        <div class="dok-slot-card">
+          <h3>📸 Dokumentasi 1 <span id="dokStatus1" class="dok-status belum">Belum ada</span></h3>
+          <img id="dokPreview1" class="dok-preview" alt="Preview dokumentasi 1">
+          <div class="dok-btn-row">
+            <button class="btn" id="dokBtn1" onclick="triggerDokCapture(1)">Ambil Foto Dokumentasi 1</button>
+            <button class="btn btn-outline hidden" id="dokViewBtn1" style="flex:0 0 90px;" onclick="lihatDokFoto(1)">Lihat</button>
+          </div>
+        </div>
+
+        <div class="dok-slot-card">
+          <h3>📸 Dokumentasi 2 <span id="dokStatus2" class="dok-status belum">Belum ada</span></h3>
+          <img id="dokPreview2" class="dok-preview" alt="Preview dokumentasi 2">
+          <div class="dok-btn-row">
+            <button class="btn" id="dokBtn2" onclick="triggerDokCapture(2)">Ambil Foto Dokumentasi 2</button>
+            <button class="btn btn-outline hidden" id="dokViewBtn2" style="flex:0 0 90px;" onclick="lihatDokFoto(2)">Lihat</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="dokEmptyHint" class="dok-empty-hint">Pilih Angkatan dan Sesi terlebih dahulu untuk mengelola foto dokumentasi.</div>
+    </div>
+  </div>
+
   <canvas id="canvas" class="hidden"></canvas>
+  <input type="file" id="dokFileInput1" accept="image/*" capture="environment" class="hidden">
+  <input type="file" id="dokFileInput2" accept="image/*" capture="environment" class="hidden">
 
   <div id="toast">
     <div id="toastIcon"></div>
     <div id="toastStatus"></div>
   </div>
+  <div id="dokToast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script>
@@ -144,6 +318,8 @@
     var WEB_APP_URL = '';
     var PASSWORD = '';
     var sesiListCache = [];
+    var angkatanListCache = [];
+
     var stream = null;
     var video = document.getElementById('video');
     var canvas = document.getElementById('canvas');
@@ -175,24 +351,26 @@
       WEB_APP_URL = url.replace(/\/+$/, '');
       PASSWORD = pw;
 
-      errBox.style.color = '#999';
-      errBox.textContent = 'Memuat daftar sesi...';
+      errBox.style.color = '#64748b';
+      errBox.textContent = 'Memuat data...';
 
       callApi({ action: 'getLists', password: PASSWORD })
         .then(function (res) {
           if (!res.success) throw new Error(res.message || 'Login gagal.');
           sesiListCache = res.sesiList || [];
-          populateSelect('angkatanSelect', res.angkatanList, function (a) {
-            return { value: a, label: 'Angkatan ' + a };
-          });
+          angkatanListCache = res.angkatanList || [];
+
+          populateSelect('angkatanSelect', angkatanListCache);
+          populateSelect('dokAngkatanSelect', angkatanListCache);
           resetSesiSelect();
-          document.getElementById('loginBox').style.display = 'none';
-          document.getElementById('scannerApp').style.display = 'flex';
+          resetDokSesiSelect();
+
           localStorage.setItem('scanLiveUrl', WEB_APP_URL); // hanya URL disimpan, password tidak
-          startCamera();
+          document.getElementById('menuUrlLabel').textContent = WEB_APP_URL;
+          showView('viewMenu');
         })
         .catch(function (err) {
-          errBox.style.color = '#ff6b6b';
+          errBox.style.color = '#dc2626';
           errBox.textContent = err.message;
         });
     }
@@ -201,18 +379,17 @@
       stopCamera();
       PASSWORD = '';
       document.getElementById('password').value = '';
-      document.getElementById('scannerApp').style.display = 'none';
-      document.getElementById('loginBox').style.display = 'block';
+      document.getElementById('loginError').textContent = '';
+      showView('viewLogin');
     }
 
-    function populateSelect(id, items, mapFn) {
+    function populateSelect(id, angkatanArray) {
       var el = document.getElementById(id);
-      el.innerHTML = '<option value="">-- Pilih ' + (id === 'sesiSelect' ? 'Sesi' : 'Angkatan') + ' --</option>';
-      items.forEach(function (item) {
-        var m = mapFn(item);
+      el.innerHTML = '<option value="">-- Pilih Angkatan --</option>';
+      angkatanArray.forEach(function (a) {
         var opt = document.createElement('option');
-        opt.value = m.value;
-        opt.textContent = m.label;
+        opt.value = a;
+        opt.textContent = 'Angkatan ' + a;
         el.appendChild(opt);
       });
     }
@@ -223,14 +400,40 @@
       if (saved) document.getElementById('webAppUrl').value = saved;
     });
 
+    // ============================================================
+    // VIEW SWITCHING
+    // ============================================================
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
+      document.getElementById(id).classList.add('active');
+    }
+
+    function openAbsensi() {
+      showView('viewAbsensi');
+      updatePauseState();
+      startCamera();
+    }
+
+    function backToMenuFromAbsensi() {
+      stopCamera();
+      showView('viewMenu');
+    }
+
+    function openDokumentasi() {
+      showView('viewDokumentasi');
+    }
+
+    function backToMenuFromDokumentasi() {
+      showView('viewMenu');
+    }
+
+    // ============================================================
+    // FILTER SESI BERDASARKAN ANGKATAN (dipakai Absensi & Dokumentasi)
+    // ============================================================
     document.getElementById('sesiSelect').addEventListener('change', updatePauseState);
     document.getElementById('angkatanSelect').addEventListener('change', function () {
       var angkatan = this.value;
-      if (!angkatan) {
-        resetSesiSelect();
-      } else {
-        filterSesiByAngkatan(angkatan);
-      }
+      if (!angkatan) { resetSesiSelect(); } else { filterSesiByAngkatan(angkatan, 'sesiSelect'); }
       updatePauseState();
     });
 
@@ -240,12 +443,11 @@
       el.disabled = true;
     }
 
-    function filterSesiByAngkatan(angkatan) {
-      var el = document.getElementById('sesiSelect');
+    function filterSesiByAngkatan(angkatan, selectId) {
+      var el = document.getElementById(selectId);
       el.disabled = false;
       var filtered = sesiListCache.filter(function (s) {
         var sesiAngkatan = String(s.Angkatan || '').trim();
-        // sesi dengan Angkatan kosong berarti "untuk semua angkatan", jadi tetap muncul
         var cocokAngkatan = (sesiAngkatan === '' || sesiAngkatan === String(angkatan).trim());
         return cocokAngkatan && s.Status_Aktif === true;
       });
@@ -270,10 +472,9 @@
     }
 
     // ============================================================
-    // KAMERA + LOOP SCAN QR
+    // KAMERA + LOOP SCAN QR (ABSENSI)
     // ============================================================
     function startCamera() {
-      updatePauseState();
       navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false
@@ -302,7 +503,6 @@
     var lastFrameTime = 0;
     function scanLoop(ts) {
       if (!scanning) return;
-      // throttle ke ~8 fps cukup untuk decode QR, hemat CPU/baterai
       if (ts - lastFrameTime > 120 && video.readyState === video.HAVE_ENOUGH_DATA) {
         lastFrameTime = ts;
         canvas.width = video.videoWidth;
@@ -310,9 +510,7 @@
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
-        if (code && code.data) {
-          handleDetected(code.data);
-        }
+        if (code && code.data) handleDetected(code.data);
       }
       rafId = requestAnimationFrame(scanLoop);
     }
@@ -320,7 +518,7 @@
     function handleDetected(rawValue) {
       var sesiId = document.getElementById('sesiSelect').value;
       var angkatan = document.getElementById('angkatanSelect').value;
-      if (!sesiId || !angkatan) return; // belum siap, abaikan
+      if (!sesiId || !angkatan) return;
 
       var pesertaId = parsePesertaId(rawValue);
       var now = Date.now();
@@ -333,7 +531,6 @@
       showToast(true);
       beep(true);
 
-      // Ambil foto dari frame video SAAT INI (bukan canvas hasil decode, sudah sama isinya)
       var photoBase64 = capturePhoto();
 
       callApi({
@@ -348,21 +545,20 @@
           scanCount++;
           document.getElementById('scanCounter').textContent = scanCount;
         } else if (res.code === 'SESI_BELUM_MULAI') {
-          // timpa notifikasi BERHASIL yang sudah tampil, jelaskan berapa menit lagi
           var menit = res.minutesLeft;
           var label = (menit && menit > 0)
             ? 'DITOLAK: Bisa Scan ' + menit + ' Menit Lagi'
             : 'DITOLAK: Sesi Belum Mulai';
           showToast(false, label);
           beep(false);
+        } else if (res.code === 'ANGKATAN_TIDAK_SESUAI') {
+          showToast(false, res.message);
+          beep(false);
         } else {
-          // Sengaja tidak ditampilkan ke layar (sesuai permintaan: cukup BERHASIL saja).
-          // Tetap dicatat di console untuk keperluan debug kalau dibutuhkan panitia teknis.
           console.warn('Scan tidak tersimpan:', res.message);
         }
       }).catch(function (err) {
         console.warn('Gagal kirim ke server:', err.message);
-        // biar bisa dicoba lagi lebih cepat kalau errornya jaringan
         lastScanTime[pesertaId] = 0;
       }).finally(function () {
         busy = false;
@@ -382,7 +578,6 @@
     }
 
     function capturePhoto() {
-      // kompres: max lebar 480px, JPEG 0.6 — sama seperti Form.html peserta
       var maxW = 480;
       var scale = Math.min(1, maxW / canvas.width);
       var outW = Math.round(canvas.width * scale);
@@ -414,7 +609,7 @@
     }
 
     // ============================================================
-    // TOAST + BUNYI
+    // TOAST + BUNYI (ABSENSI)
     // ============================================================
     var toastTimer = null;
     function showToast(success, label) {
@@ -431,24 +626,23 @@
       try {
         audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
         if (success) {
-          // dua nada cepat berturut-turut, nyaring & jelas terdengar di lokasi ramai
-          playTone(1046, 0.09, 0);      // C6
-          playTone(1568, 0.14, 0.1);    // G6
+          playTone(1046, 0.09, 0);
+          playTone(1568, 0.14, 0.1);
         } else {
-          playTone(160, 0.35, 0);       // nada rendah panjang untuk gagal
+          playTone(160, 0.35, 0);
         }
         if (navigator.vibrate) navigator.vibrate(success ? 60 : [80, 60, 80]);
-      } catch (e) { /* audio tidak wajib, abaikan kalau gagal */ }
+      } catch (e) {}
     }
 
     function playTone(freq, durationSec, delaySec) {
       var startTime = audioCtx.currentTime + delaySec;
       var o = audioCtx.createOscillator();
       var g = audioCtx.createGain();
-      o.type = 'square';           // lebih nyaring & tegas dibanding sine
+      o.type = 'square';
       o.frequency.value = freq;
       g.gain.setValueAtTime(0.0001, startTime);
-      g.gain.exponentialRampToValueAtTime(0.9, startTime + 0.01); // volume besar
+      g.gain.exponentialRampToValueAtTime(0.9, startTime + 0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, startTime + durationSec);
       o.connect(g);
       g.connect(audioCtx.destination);
@@ -457,6 +651,160 @@
     }
 
     window.addEventListener('beforeunload', stopCamera);
+
+    // ============================================================
+    // DOKUMENTASI
+    // ============================================================
+    var dokPendingPhoto = { 1: null, 2: null };
+
+    function resetDokSesiSelect() {
+      var el = document.getElementById('dokSesiSelect');
+      el.innerHTML = '<option value="">-- Pilih Angkatan Dulu --</option>';
+      el.disabled = true;
+      document.getElementById('dokSlotsWrap').classList.add('hidden');
+      document.getElementById('dokEmptyHint').classList.remove('hidden');
+    }
+
+    function handleDokAngkatanChange() {
+      var angkatan = document.getElementById('dokAngkatanSelect').value;
+      if (!angkatan) {
+        resetDokSesiSelect();
+      } else {
+        filterSesiByAngkatan(angkatan, 'dokSesiSelect');
+      }
+      document.getElementById('dokSlotsWrap').classList.add('hidden');
+      document.getElementById('dokEmptyHint').classList.remove('hidden');
+    }
+
+    function handleDokSesiChange() {
+      var sesiId = document.getElementById('dokSesiSelect').value;
+      dokPendingPhoto = { 1: null, 2: null };
+      if (!sesiId) {
+        document.getElementById('dokSlotsWrap').classList.add('hidden');
+        document.getElementById('dokEmptyHint').classList.remove('hidden');
+        return;
+      }
+      document.getElementById('dokSlotsWrap').classList.remove('hidden');
+      document.getElementById('dokEmptyHint').classList.add('hidden');
+      renderDokSlot(1);
+      renderDokSlot(2);
+    }
+
+    function getCurrentDokSesi() {
+      var sesiId = document.getElementById('dokSesiSelect').value;
+      return sesiListCache.find(function (s) { return String(s.Sesi_ID) === String(sesiId); });
+    }
+
+    function renderDokSlot(slot) {
+      var s = getCurrentDokSesi();
+      var url = s ? (s['Dokumentasi_' + slot] || '') : '';
+      var statusEl = document.getElementById('dokStatus' + slot);
+      var btnEl = document.getElementById('dokBtn' + slot);
+      var viewBtnEl = document.getElementById('dokViewBtn' + slot);
+      var previewEl = document.getElementById('dokPreview' + slot);
+
+      if (dokPendingPhoto[slot]) return; // sedang preview foto baru, jangan ditimpa
+
+      if (url) {
+        statusEl.textContent = 'Sudah ada';
+        statusEl.className = 'dok-status ada';
+        btnEl.textContent = 'Ganti Foto Dokumentasi ' + slot;
+        viewBtnEl.classList.remove('hidden');
+        previewEl.style.display = 'none';
+      } else {
+        statusEl.textContent = 'Belum ada';
+        statusEl.className = 'dok-status belum';
+        btnEl.textContent = 'Ambil Foto Dokumentasi ' + slot;
+        viewBtnEl.classList.add('hidden');
+        previewEl.style.display = 'none';
+      }
+    }
+
+    function lihatDokFoto(slot) {
+      var s = getCurrentDokSesi();
+      var url = s ? (s['Dokumentasi_' + slot] || '') : '';
+      if (url) window.open(url, '_blank');
+    }
+
+    function triggerDokCapture(slot) {
+      if (!document.getElementById('dokSesiSelect').value) {
+        alert('Pilih Sesi terlebih dahulu.');
+        return;
+      }
+      document.getElementById('dokFileInput' + slot).click();
+    }
+
+    document.getElementById('dokFileInput1').addEventListener('change', function (e) { handleDokFileSelected(e, 1); });
+    document.getElementById('dokFileInput2').addEventListener('change', function (e) { handleDokFileSelected(e, 2); });
+
+    function handleDokFileSelected(e, slot) {
+      var file = e.target.files[0];
+      e.target.value = ''; // reset supaya bisa ambil ulang file yang sama
+      if (!file) return;
+
+      var reader = new FileReader();
+      reader.onload = function (ev) {
+        var img = new Image();
+        img.onload = function () {
+          var maxW = 1280;
+          var scale = Math.min(1, maxW / img.width);
+          var c = document.createElement('canvas');
+          c.width = img.width * scale;
+          c.height = img.height * scale;
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          var dataUrl = c.toDataURL('image/jpeg', 0.78);
+          dokPendingPhoto[slot] = dataUrl;
+          uploadDokFoto(slot, dataUrl);
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function uploadDokFoto(slot, dataUrl) {
+      var sesiId = document.getElementById('dokSesiSelect').value;
+      var btn = document.getElementById('dokBtn' + slot);
+      var preview = document.getElementById('dokPreview' + slot);
+
+      preview.src = dataUrl;
+      preview.style.display = 'block';
+      btn.disabled = true;
+      btn.textContent = 'Mengupload...';
+
+      callApi({
+        action: 'uploadDokumentasi',
+        password: PASSWORD,
+        sesiId: sesiId,
+        slot: slot,
+        photoBase64: dataUrl
+      }).then(function (res) {
+        btn.disabled = false;
+        dokPendingPhoto[slot] = null;
+        if (res.success) {
+          var s = getCurrentDokSesi();
+          if (s) s['Dokumentasi_' + slot] = res.url;
+          renderDokSlot(slot);
+          showDokToast(true, '✅ Dokumentasi ' + slot + ' tersimpan!');
+        } else {
+          renderDokSlot(slot);
+          showDokToast(false, '❌ Gagal: ' + (res.message || 'Tidak diketahui'));
+        }
+      }).catch(function (err) {
+        btn.disabled = false;
+        dokPendingPhoto[slot] = null;
+        renderDokSlot(slot);
+        showDokToast(false, '❌ Gagal upload: ' + err.message);
+      });
+    }
+
+    var dokToastTimer = null;
+    function showDokToast(success, text) {
+      var box = document.getElementById('dokToast');
+      clearTimeout(dokToastTimer);
+      box.className = 'show ' + (success ? 'ok' : 'fail');
+      box.textContent = text;
+      dokToastTimer = setTimeout(function () { box.classList.remove('show'); }, 2500);
+    }
   </script>
 </body>
 </html>
