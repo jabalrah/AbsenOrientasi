@@ -480,7 +480,7 @@
       filtered.forEach(function (s) {
         var opt = document.createElement('option');
         opt.value = s.Sesi_ID;
-        opt.textContent = s.Sesi_ID + ' — ' + s.Nama_Sesi + (s.Angkatan ? '' : ' (Semua Angkatan)');
+        opt.textContent = s.Nama_Sesi + (s.Angkatan ? '' : ' (Semua Angkatan)');
         el.appendChild(opt);
       });
     }
