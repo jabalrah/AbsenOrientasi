@@ -212,7 +212,7 @@
       <div class="login-icon">📷</div>
       <h2>Live Scanner Absensi</h2>
       <p class="sub">Halaman terpisah dari Apps Script, bicara ke Web App lewat API.</p>
-      <input type="text" id="webAppUrl" placeholder="URL Web App (…/exec)" autocomplete="off">
+      <input type="text" id="webAppUrl" placeholder="Isi Optional" autocomplete="off">
       <input type="password" id="password" placeholder="Password admin" autocomplete="new-password"
              onkeydown="if(event.key==='Enter') doLogin()">
       <button class="btn" onclick="doLogin()">Masuk</button>
@@ -356,8 +356,11 @@
     // ============================================================
     // LOGIN
     // ============================================================
+    var DEFAULT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzfKg40bj9qIsHF7AEZyGL2G_o_rTWuenh1ExRVZnTGssZDfqG4374kiircdISH5ZQ3/exec';
+
     function doLogin() {
       var url = document.getElementById('webAppUrl').value.trim();
+      if (!url) url = DEFAULT_WEB_APP_URL; // kosong -> pakai link default
       var pw = document.getElementById('password').value.trim();
       var errBox = document.getElementById('loginError');
       errBox.textContent = '';
