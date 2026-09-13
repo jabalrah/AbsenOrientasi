@@ -350,7 +350,7 @@
     var rafId = null;
     var scanCount = 0;
     var lastScanTime = {};      // pesertaId -> timestamp scan terakhir
-    var COOLDOWN_MS = 6000;     // jangan proses ID yang sama dalam 6 detik
+    var COOLDOWN_MS = 1500;     // jangan proses ID yang sama dalam 1.5 detik
     var busy = false;           // true selagi menunggu respons server (blokir scan baru)
 
     // ============================================================
