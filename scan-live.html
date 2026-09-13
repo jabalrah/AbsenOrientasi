@@ -349,9 +349,8 @@
     var scanning = false;
     var rafId = null;
     var scanCount = 0;
-    var lastScanTime = {};      // pesertaId -> timestamp scan terakhir
-    var COOLDOWN_MS = 1500;     // jangan proses ID yang sama dalam 1.5 detik
-    var busy = false;           // true selagi menunggu respons server (blokir scan baru)
+    var SCAN_GAP_MS = 2000;     // jeda tetap 2 detik antar scan APAPUN (bukan menunggu respons server)
+    var lastScanAt = 0;
 
     // ============================================================
     // LOGIN
@@ -568,13 +567,11 @@
       var angkatan = document.getElementById('angkatanSelect').value;
       if (!sesiId || !angkatan) return;
 
-      var pesertaId = parsePesertaId(rawValue);
       var now = Date.now();
-      if (busy) return;
-      if (lastScanTime[pesertaId] && (now - lastScanTime[pesertaId]) < COOLDOWN_MS) return;
+      if (now - lastScanAt < SCAN_GAP_MS) return;
+      lastScanAt = now;
 
-      lastScanTime[pesertaId] = now;
-      busy = true;
+      var pesertaId = parsePesertaId(rawValue);
       flashFrame(true);
       showToast(true);
       beep(true);
@@ -612,9 +609,8 @@
       }).catch(function (err) {
         console.warn('Gagal kirim ke server:', err.message);
         showNameIndicator('Gagal terhubung ke server', 'gagal');
-        lastScanTime[pesertaId] = 0;
+        lastScanAt = 0; // biar bisa langsung dicoba ulang kalau errornya jaringan
       }).finally(function () {
-        busy = false;
         flashFrame(false);
       });
     }
