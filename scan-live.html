@@ -364,15 +364,25 @@
         errBox.textContent = 'Isi password admin.';
         return;
       }
-      WEB_APP_URL = url.replace(/\/+$/, '');
-      PASSWORD = pw;
 
       errBox.style.color = '#64748b';
       errBox.textContent = 'Memuat data...';
 
-      callApi({ action: 'getLists', password: PASSWORD })
+      attemptLogin(url, pw, function (ok, message) {
+        if (!ok) {
+          errBox.style.color = '#dc2626';
+          errBox.textContent = message;
+        }
+      });
+    }
+
+    function attemptLogin(url, pw, callback) {
+      var targetUrl = url.replace(/\/+$/, '');
+      callApi({ action: 'getLists', password: pw }, targetUrl)
         .then(function (res) {
           if (!res.success) throw new Error(res.message || 'Login gagal.');
+          WEB_APP_URL = targetUrl;
+          PASSWORD = pw;
           sesiListCache = res.sesiList || [];
           angkatanListCache = res.angkatanList || [];
           authLevel = res.level || 'admin';
@@ -396,13 +406,16 @@
             filterSesiByAngkatan(authAngkatan, 'dokSesiSelect');
           }
 
-          localStorage.setItem('scanLiveUrl', WEB_APP_URL); // hanya URL disimpan, password tidak
+          // Simpan URL & password supaya tidak perlu login ulang tiap refresh
+          localStorage.setItem('scanLiveUrl', WEB_APP_URL);
+          localStorage.setItem('scanLivePW', pw);
           document.getElementById('menuUrlLabel').textContent = WEB_APP_URL;
           showView('viewMenu');
+          if (callback) callback(true);
         })
         .catch(function (err) {
-          errBox.style.color = '#dc2626';
-          errBox.textContent = err.message;
+          localStorage.removeItem('scanLivePW');
+          if (callback) callback(false, err.message);
         });
     }
 
@@ -411,6 +424,7 @@
       PASSWORD = '';
       authLevel = 'admin';
       authAngkatan = null;
+      localStorage.removeItem('scanLivePW');
       document.getElementById('password').value = '';
       document.getElementById('loginError').textContent = '';
       showView('viewLogin');
@@ -427,10 +441,23 @@
       });
     }
 
-    // muat ulang URL yang pernah dipakai (kalau ada) supaya tidak ketik ulang tiap buka
+    // Muat ulang URL yang pernah dipakai, dan coba login otomatis kalau
+    // password juga masih tersimpan — supaya tidak perlu login ulang tiap refresh.
     window.addEventListener('load', function () {
-      var saved = localStorage.getItem('scanLiveUrl');
-      if (saved) document.getElementById('webAppUrl').value = saved;
+      var savedUrl = localStorage.getItem('scanLiveUrl');
+      var savedPW = localStorage.getItem('scanLivePW');
+      if (savedUrl) document.getElementById('webAppUrl').value = savedUrl;
+      if (savedUrl && savedPW) {
+        var errBox = document.getElementById('loginError');
+        errBox.style.color = '#64748b';
+        errBox.textContent = 'Memuat data...';
+        attemptLogin(savedUrl, savedPW, function (ok, message) {
+          if (!ok) {
+            errBox.textContent = '';
+            localStorage.removeItem('scanLivePW'); // sudah tidak valid, minta login manual lagi
+          }
+        });
+      }
     });
 
     // ============================================================
@@ -673,8 +700,8 @@
     // API CALL — pakai Content-Type text/plain supaya tidak kena
     // CORS preflight (Apps Script tidak support OPTIONS request)
     // ============================================================
-    function callApi(payload) {
-      return fetch(WEB_APP_URL, {
+    function callApi(payload, urlOverride) {
+      return fetch(urlOverride || WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
