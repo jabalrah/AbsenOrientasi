@@ -205,7 +205,6 @@
       <div class="login-icon">📷</div>
       <h2>Live Scanner Absensi</h2>
       <p class="sub">Halaman terpisah dari Apps Script, bicara ke Web App lewat API.</p>
-      <input type="text" id="webAppUrl" placeholder="Isi Optional" autocomplete="off">
       <input type="password" id="password" placeholder="Password admin" autocomplete="new-password"
              onkeydown="if(event.key==='Enter') doLogin()">
       <button class="btn" onclick="doLogin()">Masuk</button>
@@ -350,16 +349,11 @@
     var DEFAULT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzfKg40bj9qIsHF7AEZyGL2G_o_rTWuenh1ExRVZnTGssZDfqG4374kiircdISH5ZQ3/exec';
 
     function doLogin() {
-      var url = document.getElementById('webAppUrl').value.trim();
-      if (!url) url = DEFAULT_WEB_APP_URL; // kosong -> pakai link default
+      var url = DEFAULT_WEB_APP_URL; // link tetap, tidak bisa diisi manual
       var pw = document.getElementById('password').value.trim();
       var errBox = document.getElementById('loginError');
       errBox.textContent = '';
 
-      if (!url || url.indexOf('http') !== 0) {
-        errBox.textContent = 'Isi URL Web App yang valid (…/exec).';
-        return;
-      }
       if (!pw) {
         errBox.textContent = 'Isi password admin.';
         return;
@@ -441,17 +435,15 @@
       });
     }
 
-    // Muat ulang URL yang pernah dipakai, dan coba login otomatis kalau
-    // password juga masih tersimpan — supaya tidak perlu login ulang tiap refresh.
+    // Coba login otomatis pakai password yang masih tersimpan — supaya
+    // tidak perlu login ulang tiap refresh. URL selalu pakai link tetap.
     window.addEventListener('load', function () {
-      var savedUrl = localStorage.getItem('scanLiveUrl');
       var savedPW = localStorage.getItem('scanLivePW');
-      if (savedUrl) document.getElementById('webAppUrl').value = savedUrl;
-      if (savedUrl && savedPW) {
+      if (savedPW) {
         var errBox = document.getElementById('loginError');
         errBox.style.color = '#64748b';
         errBox.textContent = 'Memuat data...';
-        attemptLogin(savedUrl, savedPW, function (ok, message) {
+        attemptLogin(DEFAULT_WEB_APP_URL, savedPW, function (ok, message) {
           if (!ok) {
             errBox.textContent = '';
             localStorage.removeItem('scanLivePW'); // sudah tidak valid, minta login manual lagi
