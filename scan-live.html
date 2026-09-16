@@ -850,7 +850,7 @@
         var img = new Image();
         img.onload = function () {
           // Foto dokumentasi dikompres otomatis maksimal 40 KB
-          var dataUrl = compressToTarget(img, 40 * 1024, 1280);
+          var dataUrl = compressToTarget(img, 100 * 1024, 1280);
           dokPendingPhoto[slot] = dataUrl;
           uploadDokFoto(slot, dataUrl);
         };
